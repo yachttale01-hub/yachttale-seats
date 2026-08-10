@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3A3C84">
+<title>실시간 잔여좌석 현황 · (주)요트탈래</title>
+<meta name="description" content="향후 7일간 요트투어·어드벤처 잔여좌석을 한눈에 확인하세요.">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root{
+    --brand:#3A3C84; --brand2:#2E74B5; --ink:#1f2937; --muted:#6b7280; --line:#e6eaf3;
+    --bg:#f4f6fb; --card:#ffffff;
+    --green:#16a34a; --green-bg:#dff3e6; --amber:#d97706; --amber-bg:#fbedd3;
+    --red:#dc2626; --red-bg:#fbe2e2; --gray:#9aa6b6; --gray-bg:#eef1f5;
+    --shadow:0 1px 3px rgba(30,40,90,.08),0 6px 18px rgba(30,40,90,.06);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{
+    font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","맑은 고딕",sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5; padding:0 0 10px; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 12px}
+
+  header{background:linear-gradient(135deg,#3A3C84,#4a4ea6);color:#fff;padding:18px 0 14px;position:sticky;top:0;z-index:30;box-shadow:0 2px 12px rgba(30,40,90,.18)}
+  header .wrap{display:flex;flex-direction:column;gap:2px}
+  .h-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .langbar{flex:0 0 auto;display:flex;gap:3px;align-items:center}
+  .langbar button{background:transparent;border:1.5px solid transparent;font-size:17px;line-height:1;padding:3px 4px;border-radius:8px;cursor:pointer;opacity:.5;transition:.12s}
+  .langbar button.on{opacity:1;background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.55)}
+  @media (max-width:430px){ .langbar button{font-size:15px;padding:2px 3px} }
+  .h-title{font-size:19px;font-weight:800;letter-spacing:-.02em}
+  .h-sub{font-size:11.5px;opacity:.88;line-height:1.45;margin-top:3px;word-break:keep-all;white-space:pre-line}
+  .sync{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:12px;font-weight:600}
+  .dot{width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.6);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.6)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+  .sync.stale .dot{background:#facc15;animation:none}
+
+  .banner{background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:10px;padding:9px 12px;font-size:12.5px;margin:12px 0 0;display:none}
+  .banner.show{display:block}
+
+  .seg{display:flex;background:#e9edf6;border-radius:12px;padding:4px;margin:14px 0 10px;gap:4px}
+  .seg button{flex:1;border:0;background:transparent;color:var(--muted);font-size:14px;font-weight:700;padding:10px 0;border-radius:9px;cursor:pointer;font-family:inherit;transition:.15s}
+  .seg button.on{background:var(--brand);color:#fff;font-weight:800;box-shadow:0 2px 8px rgba(58,60,132,.35)}
+  .seg button.on::before{content:"✓ ";font-weight:800}
+
+  /* 상단 바로가기(아래 어드벤처 구역이 있다는 걸 인지시키고 즉시 이동) */
+  .jump{display:flex;gap:8px;margin:14px 0 10px}
+  .jump button{flex:1;border:1.5px solid #bfd3fe;background:#e4ecff;color:#1d4ed8;font-family:inherit;
+               font-size:13.5px;font-weight:800;padding:11px 6px;border-radius:11px;cursor:pointer;
+               display:flex;align-items:center;justify-content:center;gap:5px;transition:.12s}
+  .jump button:active{transform:translateY(1px)}
+  .jump button .ar{font-size:13px;opacity:.95}
+  .jump button.adv{color:#c2410c;border-color:#fbd6bb;background:#fff1e8}
+  @media (max-width:430px){ .jump button{font-size:12.5px;padding:10px 4px} }
+
+  /* 주간 이동 */
+  .weeknav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 8px}
+  .weeknav button{flex:0 0 auto;border:1.5px solid var(--line);background:var(--card);color:var(--brand);font-family:inherit;font-size:13px;font-weight:800;padding:8px 14px;border-radius:10px;cursor:pointer;transition:.12s}
+  .weeknav button:active{transform:translateY(1px)}
+  .weeknav button:disabled{color:#c3cbd9;border-color:#eef1f7;cursor:default}
+  .weeknav .wlabel{flex:1;text-align:center;color:var(--ink)}
+  .weeknav .wlabel .range{display:block;font-size:17px;font-weight:800;letter-spacing:-.01em}
+  .weeknav .wlabel small{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-top:1px}
+
+  /* 상품 섹션(요트투어·어드벤처를 한 페이지에 위아래로)
+     — 두 상품을 착각해 잘못 예약하는 일이 잦아, 색으로 꽉 찬 제목 배너 + 좌측 컬러 띠로 강하게 구분한다.
+       요트투어 = 브랜드 남색 / 어드벤처 = 주황 (상단 바로가기 버튼 색과 짝을 맞춤) */
+  /* 상품별 색(대표 확정 2026-08-14): 요트투어=하늘색(리버 브랜드색 계통) · 어드벤처=주황.
+     같은 상품이면 상단 바로가기 버튼과 구역 제목이 같은 색 → 버튼 색만 보고 어느 구역인지 안다.
+     맨 위 헤더(남색)와는 둘 다 구분된다. */
+  .psec{margin:0 0 30px;position:relative;padding-left:10px;border-left:4px solid #1d4ed8;border-radius:0 0 0 6px}
+  .psec.adv{border-left-color:#ea580c}
+  .ptitle{display:flex;align-items:center;justify-content:center;gap:9px;margin:0 0 11px;padding:12px 15px;border-radius:12px;
+          background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;text-align:center;
+          font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.25;
+          box-shadow:0 3px 11px rgba(29,78,216,.3)}
+  .psec.adv .ptitle{background:linear-gradient(135deg,#ea580c,#f97316);box-shadow:0 3px 11px rgba(234,88,12,.3)}
+  .ptitle .ic{font-size:21px;line-height:1}
+  @media (max-width:430px){
+    .ptitle{font-size:17px;padding:11px 13px;gap:7px}
+    .ptitle .ic{font-size:19px}
+    .psec{margin-bottom:24px;padding-left:8px}
+  }
+
+  /* 범례는 '실시간 동기화' 줄 바로 아래(헤더 직하)에 둔다(대표 요청 2026-08-14) */
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin:9px 2px 2px;align-items:center}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .chip{width:11px;height:11px;border-radius:3px}
+  .chip.g{background:var(--green)}.chip.a{background:var(--amber)}.chip.r{background:var(--red)}.chip.x{background:var(--gray)}
+
+  /* 주간 그리드 */
+  .gridwrap{background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:auto;-webkit-overflow-scrolling:touch}
+  table.grid{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;min-width:350px}
+  table.grid th,table.grid td{padding:0;text-align:center}
+  /* 시간 열 */
+  table.grid .tcol{width:50px}
+  table.grid col.day{width:calc((100% - 52px)/7)}
+  /* 헤더(요일) */
+  thead th{position:sticky;top:0;z-index:5;background:#f0f3fa;color:var(--ink);font-weight:700;font-size:12px;padding:7px 2px;border-bottom:1.5px solid var(--line)}
+  thead th .wd{font-size:11px;color:var(--muted);font-weight:700}
+  thead th .dd{font-size:15px;font-weight:800}
+  thead th.sat .wd{color:#2563eb}thead th.sun .wd{color:#dc2626}
+  thead th.today .dd{color:var(--brand)}
+  thead th.today::after{content:attr(data-today);display:block;font-size:9px;font-weight:800;color:var(--brand);line-height:1}
+  thead th.corner{left:0;z-index:6;background:#f0f3fa}
+  /* 시간 셀 */
+  tbody th.time{position:sticky;left:0;z-index:4;background:#f7f9fc;font-weight:700;color:#334155;border-right:1.5px solid var(--line);border-bottom:1px solid var(--line);padding:3px 2px;white-space:nowrap;line-height:1.2}
+  /* 시간칸: 상품명(작게 위) → 시각(크게) → (토요일 시각) 순서 — 대표 요청 2026-08-18 */
+  tbody th.time .band{display:block;font-size:9px;font-weight:800;color:var(--brand2);letter-spacing:-.03em;margin-bottom:1px}
+  tbody th.time .band.b2{color:#94a3b8;margin-top:1px}
+  tbody th.time .t1{font-size:13px;display:block;color:#1f2937}
+  tbody th.time .t2{font-size:9.5px;font-weight:700;color:#94a3b8;display:block;letter-spacing:-.03em}
+  tbody td{border-right:1px solid #f0f3f8;border-bottom:1px solid #f0f3f8}
+  /* 상태 셀 버튼 */
+  .cell{width:100%;height:46px;border:0;background:transparent;cursor:default;font-family:inherit;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:1px;padding:2px;line-height:1}
+  /* 칸 안 상품라벨(드론쇼 등): 좌석수 아래 줄 */
+  .cell.hasband{flex-direction:column;gap:2px}
+  .cell .nrow{display:flex;align-items:center;justify-content:center;gap:1px}
+  .cell .cellband{font-size:8.5px;font-weight:800;color:var(--brand2);letter-spacing:-.02em}
+  /* 시인성 개선(대표 승인 2026-08-14):
+     ① 고객이 찾는 건 '예약 가능한 자리' — 잔여 숫자는 크게, 마감·종료는 조용한 회색으로 낮춰
+        빨간 마감이 화면을 지배해 초록 숫자가 묻히던 문제를 해소.
+     ③ 임박 칸만 은은한 배경으로 강조해 스캔 중에 놓치지 않게 함(다른 상태는 배경 없음). */
+  .cell .n{font-size:16px;font-weight:800}                 /* ① 잔여 숫자 크게(14→16) */
+  .cell .s{font-size:10.5px;font-weight:700;color:#9aa6b6} /* '석'은 작고 연하게 — 숫자가 주인공 */
+  .cell.na{cursor:default}
+  .cell.na .n{color:#c3cbd6;font-size:11px;font-weight:700}
+  .cell.AVAILABLE .n{color:var(--green)}
+  .cell.FEW_LEFT .n{color:var(--amber)}
+  .cell.FULL .n{color:#a8b2c0;font-size:11px;font-weight:700}      /* ① 마감 = 조용한 회색 */
+  .cell.COMPLETED .n{color:#c3cbd6;font-size:11px;font-weight:700} /* 종료 = 더 연하게 */
+  /* 드론쇼 등 칸 라벨도 마감·종료면 함께 흐리게(대표 요청 2026-08-14) */
+  .cell.FULL .cellband,.cell.COMPLETED .cellband,.cell.na .cellband{color:#c3cbd6}
+  .cell.sel{outline:3px solid var(--brand);outline-offset:-3px;border-radius:8px}
+  /* 데이터 갱신 애니메이션: 값이 바뀐 칸만 반짝 + 숫자 팝 */
+  .cell.flash{animation:cellflash 1.8s ease-out;border-radius:8px}
+  .cell.flash .n{animation:npop .7s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes cellflash{0%{background:#fff3c4;box-shadow:inset 0 0 0 2px #f4c430}55%{background:#fffae7;box-shadow:inset 0 0 0 1px #f4c43055}100%{background:transparent;box-shadow:none}}
+  @keyframes npop{0%{transform:scale(1.45)}100%{transform:scale(1)}}
+  /* 요일 열 교차 배경(연/진 두 톤 — 현재보다 진하게 하지 않음) */
+  thead th.cA, tbody td.cA{background:#f7f9fc}
+  thead th.cB, tbody td.cB{background:#eaeff8}
+  /* 주말 분류(대표 요청 2026-08-14): 토=옅은 파랑톤 · 일=옅은 붉은톤 (요일 글자색과 짝을 맞춤).
+     경계선은 대표 요청으로 제거 — 색만으로 구분한다. */
+  thead th.cSat, tbody td.cSat{background:#e8f0fc}
+  thead th.cSun, tbody td.cSun{background:#fdeef0}
+  /* 오늘 열: 배경 채우지 않고 테두리로만 강조 */
+  tbody td.tdy{box-shadow:inset 2px 0 0 var(--brand), inset -2px 0 0 var(--brand)}
+  thead th.tdy{box-shadow:inset 2px 0 0 var(--brand), inset -2px 0 0 var(--brand), inset 0 3px 0 var(--brand)}
+  tbody tr:last-child td.tdy{box-shadow:inset 2px 0 0 var(--brand), inset -2px 0 0 var(--brand), inset 0 -2px 0 var(--brand)}
+  .cell:focus-visible{outline:3px solid var(--brand2);outline-offset:-3px}
+
+  /* 선택 상세 */
+  .detail{margin-top:12px;background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px;display:none;border-left:6px solid var(--gray)}
+  .detail.show{display:block}
+  .detail.AVAILABLE{border-left-color:var(--green)}.detail.FEW_LEFT{border-left-color:var(--amber)}.detail.FULL{border-left-color:var(--red)}.detail.COMPLETED{border-left-color:var(--gray)}
+  .d-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+  .d-when{font-size:17px;font-weight:800}
+  .d-when small{font-size:12px;color:var(--muted);font-weight:600;margin-left:6px}
+  .d-badge{font-size:12.5px;font-weight:800;padding:5px 11px;border-radius:999px;white-space:nowrap}
+  .d-badge.AVAILABLE{background:var(--green-bg);color:var(--green)}.d-badge.FEW_LEFT{background:var(--amber-bg);color:var(--amber)}.d-badge.FULL{background:var(--red-bg);color:var(--red)}.d-badge.COMPLETED{background:var(--gray-bg);color:var(--gray)}
+  .d-seats{font-size:14px;margin-bottom:8px}.d-seats b{font-size:22px;font-weight:800}
+  .bar{height:8px;background:#eef1f7;border-radius:99px;overflow:hidden;margin-bottom:10px}
+  .bar>i{display:block;height:100%;border-radius:99px}
+  .bar.AVAILABLE>i{background:var(--green)}.bar.FEW_LEFT>i{background:var(--amber)}.bar.FULL>i{background:var(--red)}.bar.COMPLETED>i{background:var(--gray)}
+  .cta{display:block;text-align:center;text-decoration:none;font-weight:800;font-size:15px;padding:12px;border-radius:12px;background:var(--brand);color:#fff}
+  .cta.off{background:var(--gray-bg);color:var(--gray);pointer-events:none}
+  .hint{font-size:11.5px;color:var(--muted);text-align:center;margin-top:9px}
+
+  .empty{text-align:center;color:var(--muted);padding:32px 10px;font-size:14px}
+  /* 티켓 구매 버튼 (스마트스토어) */
+  /* 티켓 모양 구매 버튼(대표 요청 2026-08-14) — 위 제목 배너(크게 둥근 사각형)와 형태가 겹쳐 보여
+     좌우 반원 홈 + 안쪽 점선 절취선 + 각진 모서리로 '표(티켓)'처럼 보이게 바꿨다. */
+  .buycta{position:relative;display:block;width:fit-content;max-width:100%;text-align:center;text-decoration:none;
+          font-weight:800;font-size:15px;padding:13px 24px;border-radius:5px;background:#02b152;color:#fff;margin:14px auto 4px;
+          outline:2px dashed rgba(255,255,255,.5);outline-offset:-7px}
+  .buycta::before,.buycta::after{content:'';position:absolute;top:50%;margin-top:-9px;width:18px;height:18px;
+          border-radius:50%;background:var(--bg)}   /* 좌우 홈(페이지 배경색으로 파낸 효과) */
+  .buycta::before{left:-9px}
+  .buycta::after{right:-9px}
+  .buycta:active{transform:translateY(1px)}
+  .buycta small{display:block;font-size:10.5px;font-weight:600;opacity:.9;margin-top:2px}
+  footer{text-align:center;color:var(--muted);font-size:11px;margin-top:8px;line-height:1.5}
+  footer .contact{font-size:12px;font-weight:700;color:#475569}
+  .skel{height:260px;border-radius:14px;background:linear-gradient(90deg,#eef1f7 25%,#f7f9fc 37%,#eef1f7 63%);background-size:400% 100%;animation:sh 1.4s infinite}
+  @keyframes sh{0%{background-position:100% 0}100%{background-position:-100% 0}}
+
+  /* ── 모바일 최적화 (작은 화면) ── */
+  @media (max-width:430px){
+    .wrap{padding:0 8px}
+    header{padding:14px 0 11px}
+    .h-title{font-size:16.5px}
+    .h-sub{font-size:10.5px}
+    .sync{font-size:11px;margin-top:5px}
+    .seg{margin:11px 0 8px}
+    .seg button{font-size:13px;padding:9px 0}
+    .weeknav button{padding:7px 10px;font-size:12px}
+    .weeknav .wlabel .range{font-size:15.5px}
+    table.grid{min-width:336px}
+    table.grid .tcol{width:48px}
+    .cell{height:44px}
+    .cell .n{font-size:15px}                                          /* 모바일에서도 잔여 숫자 크게 */
+    .cell.FULL .n,.cell.COMPLETED .n,.cell.na .n{font-size:10px}      /* 마감·종료는 더 조용히 */
+    tbody th.time .t1{font-size:11px}
+    tbody th.time .band{font-size:8.5px}
+    .legend{font-size:10.5px;gap:9px}
+  }
+  @media (max-width:350px){
+    table.grid{min-width:300px}
+    table.grid .tcol{width:44px}
+    tbody th.time .band{font-size:8px}
+    .cell .n{font-size:14px}
+  }
+</style>
+<script>
+// ── 방문 통계(GoatCounter) ─────────────────────────────────────────────
+// 쿠키·개인정보를 수집하지 않는 경량 집계. GC 값이 비어 있으면 아무것도 로드하지 않는다(현재 비활성).
+// 활성화: goatcounter.com 가입 후 받은 사이트코드(예: 주소가 yachttale.goatcounter.com 이면 'yachttale')를 GC 에 입력.
+// 집계 대상: 조회수 · 유입경로(referrer) · 국가 · 기기 · 페이지별(?src=kakao 등 채널 태그, /ota.html 구분).
+(function(){
+  var GC = '';                       // ← 여기에 사이트코드 한 줄만 넣으면 즉시 활성화
+  if (!GC) return;
+  var s = document.createElement('script');
+  s.async = true; s.src = '//gc.zgo.at/count.js';
+  s.setAttribute('data-goatcounter', 'https://' + GC + '.goatcounter.com/count');
+  document.head.appendChild(s);
+})();
+</script>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="h-top">
+      <div class="h-title" id="hTitle">실시간 잔여좌석 현황</div>
+      <div id="langSel" class="langbar" aria-label="Language"></div>
+    </div>
+    <div class="h-sub" id="hSub">(주)요트탈래</div>
+    <div class="sync" id="sync"><span class="dot"></span><span id="syncTxt">동기화 중…</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="legend" id="legend"></div>
+  <div class="banner" id="banner"></div>
+  <div class="jump" id="jump"></div>
+  <div id="sections"><div class="skel"></div></div>
+  <div class="detail" id="detail"></div>
+  <div class="hint" id="hint"></div>
+  <footer>
+    <span id="fPhone"></span>
+  </footer>
+</div>
+
+<script>
+const FEED = 'seats.json';
+let DATA=null, curProduct=null, sel=null, timer=null, weekOffset=0;
+let prevSnap=null, changedKeys=new Set(), justUpdatedUntil=0;   // 갱신 애니메이션용
+let scrolledToProduct=false;   // ?p= 링크로 들어왔을 때 해당 상품 구역으로 1회만 스크롤
+const weekOff={};              // 상품별 주간 오프셋(요트투어·어드벤처가 각자 주를 넘긴다)
+
+// ───────── 다국어(i18n): ko·en·ja·zh-CN·zh-TW ─────────
+const I18N={
+ ko:{
+  title:'실시간 잔여좌석 현황',
+  notice:'실시간으로 예약이 접수되고 있어 잔여좌석은 실제와 차이가 있을 수 있습니다.\n예약 완료 후 20분 이내 확정 문자가 발송되며, 마감된 경우 변경 또는 환불 안내를 드립니다.',
+  live:a=>'실시간 동기화 · 업데이트 '+a, delayed:a=>'동기화 지연 · 마지막 업데이트 '+a, justUpdated:'✨ 방금 좌석 정보가 업데이트됐어요',
+  agoJust:'방금', agoMin:n=>n+'분 전', agoHr:(h,m)=>h+'시간 '+m+'분 전',
+  stale:a=>'⚠️ 연결이 일시 지연되어 '+a+' 정보를 표시 중입니다.',
+  help:(tel,kko)=>`정확한 잔여좌석·시간은 고객센터로 문의해 주세요 · 📞 ${tel}`+(kko?` · 💬 카톡 ${kko}`:``),
+  jump:n=>n+` 예약현황`,
+  buySubBook:`공식 예약페이지에서 바로 예약`,
+  err:'⚠️ 잔여좌석 정보를 불러오지 못했습니다.<br>잠시 후 다시 시도해 주세요.',
+  empty:n=>'🛥️ '+n+' — 이 기간에는 편성된 슬롯이 없습니다.',
+  wd:{'월':'월','화':'화','수':'수','목':'목','금':'금','토':'토','일':'일'}, today:'오늘', satPrefix:'토 ',
+  thisWeek:'이번 주', nextWeek:'다음 주', weeksLater:n=>n+'주 뒤', prevBtn:'◀ 이전', nextBtn:'다음 ▶',
+  lgNum:'숫자=잔여석 ·', lgAvail:'여유', lgFew:'임박', lgFull:'마감', lgClosed:'종료',
+  seatSub:'석', fullLbl:'마감', closedLbl:'종료',
+  buy:n=>'🎫 '+n+' 티켓 구매하기', buySub:'네이버 스마트스토어에서 안전 결제',
+  contact:(tel,kko)=>'예약문의 · 전화) '+tel+(kko?' · 카톡) '+kko:''),
+  map:{}
+ },
+ en:{
+  title:'Live Seat Availability',
+  notice:'Bookings come in real time, so availability may differ slightly from actual seats.\nA confirmation text is sent within 20 minutes of booking; if the slot is sold out, we will contact you for a change or refund.',
+  live:a=>'Live · updated '+a, delayed:a=>'Delayed · last updated '+a, justUpdated:'✨ Seat info just updated',
+  agoJust:'just now', agoMin:n=>n+' min ago', agoHr:(h,m)=>h+'h '+m+'m ago',
+  stale:a=>'⚠️ Connection delayed — showing data from '+a+'.',
+  help:(tel,kko)=>`For exact availability, please contact us · 📞 ${tel}`+(kko?` · 💬 KakaoTalk ${kko}`:``),
+  jump:n=>n+` Availability`,
+  buySubBook:`Book directly on our official page`,
+  err:'⚠️ Could not load seat data.<br>Please try again shortly.',
+  empty:n=>'🛥️ '+n+' — no scheduled departures in this period.',
+  wd:{'월':'Mon','화':'Tue','수':'Wed','목':'Thu','금':'Fri','토':'Sat','일':'Sun'}, today:'Today', satPrefix:'Sat ',
+  thisWeek:'This week', nextWeek:'Next week', weeksLater:n=>n+' wks later', prevBtn:'◀ Prev', nextBtn:'Next ▶',
+  lgNum:'No. = seats left ·', lgAvail:'Available', lgFew:'Few left', lgFull:'Sold out', lgClosed:'Closed',
+  seatSub:'', fullLbl:'Full', closedLbl:'Closed',
+  buy:n=>'🎫 Buy '+n+' Tickets', buySub:'Secure checkout on Naver SmartStore',
+  contact:(tel,kko)=>'Reservations · Tel) '+tel+(kko?' · KakaoTalk) '+kko:''),
+  map:{'요트투어':'Yacht Tour','어드벤처보트':'Adventure Boat','주간투어':'Day','선셋투어':'Sunset','야간투어':'Night','드론쇼':'Drone'}
+ },
+ ja:{
+  title:'リアルタイム残席状況',
+  notice:'ご予約はリアルタイムで入っており、残席は実際と異なる場合があります。\nご予約後20分以内に確定メッセージをお送りします。満席の場合は変更または返金のご案内をいたします。',
+  live:a=>'リアルタイム同期 · '+a+'更新', delayed:a=>'同期遅延 · 最終更新 '+a, justUpdated:'✨ 残席情報が更新されました',
+  agoJust:'たった今', agoMin:n=>n+'分前', agoHr:(h,m)=>h+'時間'+m+'分前',
+  stale:a=>'⚠️ 接続が遅延しており、'+a+'の情報を表示しています。',
+  help:(tel,kko)=>`正確な残席・お時間はお問い合わせください · 📞 ${tel}`+(kko?` · 💬 カカオトーク ${kko}`:``),
+  jump:n=>n+` 空席状況`,
+  buySubBook:`公式ページで直接ご予約`,
+  err:'⚠️ 残席情報を読み込めませんでした。<br>しばらくしてから再度お試しください。',
+  empty:n=>'🛥️ '+n+' — この期間の運航予定はありません。',
+  wd:{'월':'月','화':'火','수':'水','목':'木','금':'金','토':'土','일':'日'}, today:'本日', satPrefix:'土 ',
+  thisWeek:'今週', nextWeek:'来週', weeksLater:n=>n+'週後', prevBtn:'◀ 前へ', nextBtn:'次へ ▶',
+  lgNum:'数字=残席 ·', lgAvail:'余裕', lgFew:'残少', lgFull:'満席', lgClosed:'終了',
+  seatSub:'席', fullLbl:'満席', closedLbl:'終了',
+  buy:n=>'🎫 '+n+'チケット購入', buySub:'Naverスマートストアで安全決済',
+  contact:(tel,kko)=>'ご予約 · 電話) '+tel+(kko?' · カカオトーク) '+kko:''),
+  map:{'요트투어':'ヨットツアー','어드벤처보트':'アドベンチャーボート','주간투어':'デイ','선셋투어':'サンセット','야간투어':'ナイト','드론쇼':'ドローン'}
+ },
+ 'zh-CN':{
+  title:'实时余位信息',
+  notice:'预订实时进行，余位可能与实际略有差异。\n预订完成后20分钟内发送确认短信；如已满座，将为您安排更改或退款。',
+  live:a=>'实时同步 · '+a+'更新', delayed:a=>'同步延迟 · 最后更新 '+a, justUpdated:'✨ 余位信息刚刚更新',
+  agoJust:'刚刚', agoMin:n=>n+'分钟前', agoHr:(h,m)=>h+'小时'+m+'分前',
+  stale:a=>'⚠️ 连接延迟，正在显示'+a+'的信息。',
+  help:(tel,kko)=>`如需确认余位和时间，请联系客服 · 📞 ${tel}`+(kko?` · 💬 KakaoTalk ${kko}`:``),
+  jump:n=>n+` 余位`,
+  buySubBook:`在官方页面直接预订`,
+  err:'⚠️ 无法加载余位信息。<br>请稍后重试。',
+  empty:n=>'🛥️ '+n+' — 该期间没有航班安排。',
+  wd:{'월':'一','화':'二','수':'三','목':'四','금':'五','토':'六','일':'日'}, today:'今天', satPrefix:'六 ',
+  thisWeek:'本周', nextWeek:'下周', weeksLater:n=>n+'周后', prevBtn:'◀ 上一周', nextBtn:'下一周 ▶',
+  lgNum:'数字=余位 ·', lgAvail:'充足', lgFew:'紧张', lgFull:'满座', lgClosed:'结束',
+  seatSub:'位', fullLbl:'满座', closedLbl:'结束',
+  buy:n=>'🎫 购买'+n+'船票', buySub:'通过Naver SmartStore安全支付',
+  contact:(tel,kko)=>'预订咨询 · 电话) '+tel+(kko?' · KakaoTalk) '+kko:''),
+  map:{'요트투어':'游艇之旅','어드벤처보트':'冒险快艇','주간투어':'白天','선셋투어':'日落','야간투어':'夜间','드론쇼':'无人机秀'}
+ },
+ 'zh-TW':{
+  title:'即時餘位資訊',
+  notice:'預訂即時進行，餘位可能與實際略有差異。\n預訂完成後20分鐘內發送確認簡訊；如已滿座，將為您安排更改或退款。',
+  live:a=>'即時同步 · '+a+'更新', delayed:a=>'同步延遲 · 最後更新 '+a, justUpdated:'✨ 餘位資訊剛剛更新',
+  agoJust:'剛剛', agoMin:n=>n+'分鐘前', agoHr:(h,m)=>h+'小時'+m+'分前',
+  stale:a=>'⚠️ 連線延遲，正在顯示'+a+'的資訊。',
+  help:(tel,kko)=>`如需確認餘位和時間，請聯繫客服 · 📞 ${tel}`+(kko?` · 💬 KakaoTalk ${kko}`:``),
+  jump:n=>n+` 餘位`,
+  buySubBook:`在官方頁面直接預訂`,
+  err:'⚠️ 無法載入餘位資訊。<br>請稍後再試。',
+  empty:n=>'🛥️ '+n+' — 該期間沒有航班安排。',
+  wd:{'월':'一','화':'二','수':'三','목':'四','금':'五','토':'六','일':'日'}, today:'今天', satPrefix:'六 ',
+  thisWeek:'本週', nextWeek:'下週', weeksLater:n=>n+'週後', prevBtn:'◀ 上一週', nextBtn:'下一週 ▶',
+  lgNum:'數字=餘位 ·', lgAvail:'充足', lgFew:'緊張', lgFull:'滿座', lgClosed:'結束',
+  seatSub:'位', fullLbl:'滿座', closedLbl:'結束',
+  buy:n=>'🎫 購買'+n+'船票', buySub:'透過Naver SmartStore安全付款',
+  contact:(tel,kko)=>'預訂諮詢 · 電話) '+tel+(kko?' · KakaoTalk) '+kko:''),
+  map:{'요트투어':'遊艇之旅','어드벤처보트':'冒險快艇','주간투어':'白天','선셋투어':'日落','야간투어':'夜間','드론쇼':'無人機秀'}
+ }
+};
+let LANG=(()=>{ // 우선순위: URL ?lang= → 저장된 선택 → 한국어
+  const alias={zh:'zh-CN',cn:'zh-CN',tw:'zh-TW',jp:'ja',kr:'ko'};
+  const q=(new URLSearchParams(location.search).get('lang')||'').trim();
+  let v=I18N[q]?q:alias[q.toLowerCase()];
+  if(!v){ try{ v=localStorage.getItem('seatmap_lang'); }catch(e){} }
+  return I18N[v]?v:'ko';
+})();
+const L=()=>I18N[LANG];
+const tm=s=>(L().map&&L().map[s])||s;   // 데이터(상품명·시간대명) 번역, 없으면 원문
+// OTA(클룩·KKday 등) 모드: ota.html 로 열거나 ?ota 붙이면 구매버튼·전화/카톡 링크 숨김(플랫폼 외부유도 금지 정책 대응)
+const OTA = /ota\.html$/i.test(location.pathname) || new URLSearchParams(location.search).has('ota') || window.__FORCE_OTA__===true;
+// 예약판(book.html 또는 ?book): 구매 버튼을 스마트스토어 대신 자사 예약페이지(config cta.booking)로 연결.
+// 아임웹 등 자사 채널에서 수수료 없이 직접 예약을 받고 싶을 때 사용한다(2026-08-14).
+const BOOKING = /book\.html$/i.test(location.pathname) || new URLSearchParams(location.search).has('book') || window.__FORCE_BOOK__===true;
+
+// 지연·오류·빈 화면에서 고객센터 문의 안내(전화 탭=바로 통화). OTA 모드는 플랫폼 정책상 연락처 미노출.
+function helpHTML(){
+  if(OTA) return '';
+  const b=(DATA&&DATA.brand)||{};
+  const phone=b.phone||'1833-4212', kakao=b.kakao||'더베이101요트투어';   // 피드조차 못 읽은 경우 대비 기본값
+  const tel='<a href="tel:'+phone.replace(/[^0-9+]/g,'')+'" style="color:inherit;font-weight:800;text-decoration:underline">'+phone+'</a>';
+  return '<br><span style="font-weight:700">'+L().help(tel,kakao)+'</span>';
+}
+
+// 슬롯 상태 스냅샷: key=product|date|time → "예약|잔여" (변경 감지 기준)
+function snapshotOf(d){
+  const m=new Map();
+  for(const day of d.days) for(const s of day.slots)
+    m.set(`${s.product}|${day.date}|${s.time_slot}`, `${s.booked_count}|${s.remaining_seats}`);
+  return m;
+}
+const $ = s => document.querySelector(s);
+
+function nowKST(){ const n=new Date(); return new Date(n.getTime()+n.getTimezoneOffset()*60000+9*3600000); }
+function toKST(d){ return new Date(d.getTime()+d.getTimezoneOffset()*60000+9*3600000); }
+function ymdKST(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function fmtAgo(iso){ const diff=Math.max(0,(nowKST()-toKST(new Date(iso)))/60000); if(diff<1)return L().agoJust; if(diff<60)return L().agoMin(Math.floor(diff)); const h=Math.floor(diff/60); return L().agoHr(h,Math.floor(diff%60)); }
+
+function reclassify(slot, date, th){
+  const total=slot.total_capacity, rem=slot.remaining_seats;
+  if(total<=0) return 'FULL';
+  const depart=new Date(`${date}T${slot.time_slot}:00+09:00`);
+  const diffMin=(depart-nowKST())/60000;
+  if(diffMin<=0) return 'COMPLETED';               // 출항 지남 → 표시단에서 '마감'(빨강)으로 렌더
+  if(rem<=th.fullSeats) return 'FULL';             // 좌석 마감은 30분 전 구간에도 '마감' 유지(대표 확정 2026-08-10)
+  if(diffMin<=th.completedMinutesBefore) return 'COMPLETED';   // 좌석 남은 항차만 접수 '종료'
+  if(rem<=th.fewSeats) return 'FEW_LEFT';
+  return 'AVAILABLE';
+}
+
+async function load(){
+  try{
+    const r=await fetch(FEED+'?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    DATA=await r.json();
+    // 이전 데이터와 비교해 바뀐 슬롯만 하이라이트 (최초 로드는 제외)
+    const snap=snapshotOf(DATA);
+    if(prevSnap){
+      changedKeys=new Set();
+      for(const [k,v] of snap) if(prevSnap.get(k)!==undefined && prevSnap.get(k)!==v) changedKeys.add(k);
+      if(changedKeys.size){
+        justUpdatedUntil=Date.now()+3000;
+        setTimeout(()=>{ if(DATA) render(); },3300);   // 3초 뒤 안내문구 원복
+      }
+    }
+    prevSnap=snap;
+    render();
+  }catch(e){
+    if(!DATA){ $('#sections').innerHTML=`<div class="empty">${L().err}${helpHTML()}</div>`; }
+    $('#syncTxt').textContent=L().delayed(''); $('#sync').classList.add('stale');
+  }
+}
+
+function render(){
+  const d=DATA;
+  // 언어 선택기(국기 나열) — Windows PC는 국기 이모지가 국가코드(KR 등)로 보일 수 있음(기능은 동일)
+  const ls=$('#langSel'); ls.innerHTML='';
+  [['ko','🇰🇷','한국어'],['en','🇺🇸','English'],['ja','🇯🇵','日本語'],['zh-CN','🇨🇳','简体中文'],['zh-TW','🇹🇼','繁體中文']]
+    .forEach(([code,flag,label])=>{
+      const b=document.createElement('button'); b.type='button'; b.textContent=flag;
+      b.title=label; b.setAttribute('aria-label',label);
+      b.className=code===LANG?'on':'';
+      b.onclick=()=>{ LANG=code; try{localStorage.setItem('seatmap_lang',LANG);}catch(e){} render(); };
+      ls.appendChild(b);
+    });
+  // 제목·안내문: 한국어는 피드(config) 값, 그 외 언어는 내장 번역
+  $('#hTitle').textContent = LANG==='ko' ? (d.brand?.title||L().title) : L().title;
+  document.title = $('#hTitle').textContent + ' · (주)요트탈래';
+  $('#hSub').textContent = LANG==='ko' ? (d.brand?.subtitle||'') : L().notice;
+  if(OTA){ $('#fPhone').innerHTML=''; }
+  else if(d.brand?.phone){
+    const tel='<a href="tel:'+d.brand.phone.replace(/[^0-9+]/g,'')+'" style="color:inherit;text-decoration:none">'+d.brand.phone+'</a>';
+    $('#fPhone').innerHTML='<span class="contact">'+L().contact(tel, d.brand.kakao||'')+'</span>';
+  }
+  // 범례
+  $('#legend').innerHTML=`<span>${L().lgNum}</span>
+    <span><b style="color:var(--green)">${L().lgAvail}</b></span>
+    <span><b style="color:var(--amber)">${L().lgFew}</b></span>
+    <span><b style="color:#a8b2c0">${L().lgFull}</b></span>
+    <span><b style="color:#c3cbd6">${L().lgClosed}</b></span>`;
+
+  // 지연 판정: 백엔드 표시(stale) 또는 데이터 자체가 20분 이상 낡음(PC 꺼짐·배포 중단 등 어떤 원인이든 커버)
+  const ageMin=(nowKST()-toKST(new Date(d.generatedAt)))/60000;
+  const stale=d.syncStatus==='stale' || ageMin>20;
+  $('#sync').classList.toggle('stale',stale);
+  $('#syncTxt').textContent = Date.now()<justUpdatedUntil
+    ? L().justUpdated
+    : (stale?L().delayed(fmtAgo(d.generatedAt)):L().live(fmtAgo(d.generatedAt)));
+  $('#banner').classList.toggle('show',stale);
+  if(stale) $('#banner').innerHTML=L().stale(fmtAgo(d.generatedAt))+helpHTML();
+
+  // 상품 탭 제거(대표 요청 2026-08-14): 고객이 어드벤처를 요트투어로 착각해 잘못 예약하는 일이 잦아
+  // 두 상품을 한 페이지에 위아래로 모두 보여주고, 각 구역마다 제목·시간표·구매버튼을 붙인다.
+  buildSections();
+
+  // 기존에 배포된 ?p=adventure 링크 호환: 해당 상품 구역으로 스크롤(최초 1회만)
+  if(!scrolledToProduct){
+    scrolledToProduct=true;
+    const q=(new URLSearchParams(location.search).get('p')||location.hash.replace('#','')||'').toLowerCase();
+    const want=/^(adventure|ab|어드벤)/.test(q)?'adventure':(/^(yacht|yt|요트)/.test(q)?'yacht':'');
+    if(want) setTimeout(()=>scrollToSec(want),300);
+  }
+}
+
+// 한 상품의 주간 시간표 HTML 생성(상품별 정원기준·30분병합·시간대라벨 규칙 각각 적용)
+function gridHTML(prod, days, todayStr){
+  const d=DATA;
+  const th=prod?.thresholds||d.thresholds;   // 상품별 기준(어드벤처는 별도)
+  const merge=!!prod?.mergeHalfHour;         // 요트투어: 평일 정시 + 토 :30 을 한 행으로
+
+  // 행 구성 + (날짜,행) → 실제 슬롯 매핑
+  const rowsMap={};      // rowKey → {t1, t2}
+  const cell={};         // date|rowKey → slot
+  for(const day of days){
+    for(const s of day.slots){
+      if(s.product!==prod.key) continue;
+      const isHalf=s.time_slot.endsWith(':30');
+      const rowKey = merge ? (s.time_slot.slice(0,2)+':00') : s.time_slot;
+      rowsMap[rowKey] = rowsMap[rowKey] || { t1: rowKey, t2:'' };
+      if(merge && isHalf) rowsMap[rowKey].t2 = s.time_slot;   // 토요일 시각(표시 시 언어별 접두어 부착)
+      cell[day.date+'|'+rowKey]=s;
+    }
+  }
+  const rowKeys=Object.keys(rowsMap).sort();
+  if(!rowKeys.length) return `<div class="empty">${L().empty(tm(prod?.name||''))}${helpHTML()}</div>`;
+
+  let html='<div class="gridwrap"><table class="grid"><colgroup><col class="tcol">'+days.map(()=>'<col class="day">').join('')+'</colgroup>';
+  // 열 배경은 '요일 고정' 배색(대표 요청 2026-08-14) — 주 시작 요일이 달라져도 패턴이 흔들리지 않는다.
+  //   월·수·금 = 밝은 톤 / 화·목 = 회색 톤 / 토 = 옅은 파랑 / 일 = 옅은 붉은톤
+  const stripe=(day)=>{
+    if(day.weekday==='토') return 'cSat';
+    if(day.weekday==='일') return 'cSun';
+    return (day.weekday==='화'||day.weekday==='목') ? 'cB' : 'cA';
+  };
+  html+='<thead><tr><th class="corner tcol"></th>';
+  days.forEach((day,i)=>{
+    const isToday=day.date===todayStr;
+    const cls=[day.weekday==='토'?'sat':day.weekday==='일'?'sun':'', isToday?'today tdy':'', stripe(day)].filter(Boolean).join(' ');
+    html+=`<th class="${cls}"${isToday?` data-today="${L().today}"`:''}><span class="wd">${L().wd[day.weekday]||day.weekday}</span><br><span class="dd">${+day.date.slice(8)}</span></th>`;
+  });
+  html+='</tr></thead><tbody>';
+  // 시간대별 상품명(요트투어만): 평일/토요일 규칙으로 라벨 산출
+  const bandFor=(time,isSat)=>{
+    const tb=d.timebands; if(!tb||prod.key!=='yacht') return '';
+    for(const r of (isSat?tb.saturday:tb.weekday)||[]){
+      if(r.times&&r.times.includes(time)) return r.name;
+      if(r.before&&time<r.before) return r.name;
+      if(r.after&&time>=r.after) return r.name;
+    }
+    return '';
+  };
+  for(const rk of rowKeys){
+    const r=rowsMap[rk];
+    const b1=bandFor(r.t1,false);
+    const b2=r.t2?bandFor(r.t2,true):'';
+    // 드론쇼는 시간칸이 아니라 해당 토요일 칸 안(좌석수 밑)에 표시(대표 요청 2026-08-10)
+    // 시간칸 구성(대표 요청 2026-08-18): 상품명을 맨 위 라벨로, 그 아래 시각, 마지막에 토요일 시각을 괄호로.
+    //   한국어·중국어·일본어는 "(토14:30)"처럼 붙이고, 영어는 "(Sat 14:30)"처럼 띄운다.
+    const sp = L().satPrefix, satTxt = r.t2 ? (/[A-Za-z]/.test(sp) ? sp + r.t2 : sp.trim() + r.t2) : "";
+    html+=`<tr><th class="time">${b1?`<span class="band">${tm(b1)}</span>`:""}<span class="t1">${r.t1}</span>${r.t2?`<span class="t2">(${satTxt})</span>`:""}${(b2&&b2!==b1&&b2!=="드론쇼")?`<span class="band b2">${tm(b2)}</span>`:""}</th>`;
+    days.forEach((day,i)=>{
+      const stc=stripe(day)+(day.date===todayStr?' tdy':'');
+      const s=cell[day.date+'|'+rk];
+      if(!s){ html+=`<td class="${stc}"><div class="cell na" aria-label="${day.date.slice(5)} ${L().fullLbl}"><span class="n">${L().fullLbl}</span></div></td>`; return; }
+      const st=reclassify(s,day.date,th);
+      const rem=s.remaining_seats;
+      // 표시 규칙(대표 확정 2026-08-10): 출항 30분 전~출항 전 = '종료'(회색),
+      // 출항 시각이 지나면 = '마감'(빨강, 다른 마감 칸과 통일)
+      let dispSt=st, n, sub='';
+      if(st==='COMPLETED'){
+        const departed = new Date(`${day.date}T${s.time_slot}:00+09:00`) <= nowKST();
+        if(departed){ dispSt='FULL'; n=L().fullLbl; } else { n=L().closedLbl; }
+      }
+      else if(st==='FULL'){ n=L().fullLbl; }
+      else { n=String(rem); sub=L().seatSub; }
+      const aria = st==='COMPLETED'?(dispSt==='FULL'?L().fullLbl:L().closedLbl):(st==='FULL'?L().fullLbl:rem+' '+(L().seatSub||'left'));
+      // 이 칸의 시간대 상품이 '드론쇼'면 좌석수 아래에 라벨 표시(토요일 해당 회차)
+      const cb = bandFor(s.time_slot, day.weekday==='토')==='드론쇼' ? tm('드론쇼') : '';
+      const inner = `<span class="n">${n}</span>${sub?`<span class="s">${sub}</span>`:''}`;
+      const dk = `${prod.key}|${day.date}|${s.time_slot}`;
+      html+=`<td class="${stc}"><div class="cell ${dispSt}${cb?' hasband':''}" data-key="${dk}" aria-label="${day.date.slice(5)} ${s.time_slot}${cb?' '+cb:''} ${aria}">${cb?`<span class="nrow">${inner}</span><span class="cellband">${cb}</span>`:inner}</div></td>`;
+    });
+    html+='</tr>';
+  }
+  return html+'</tbody></table></div>';
+}
+
+// 한 상품 구역 내용 조립(제목 → 그 구역 전용 주간이동 → 시간표 → 구매버튼)
+//   주간이동을 구역마다 두는 이유(대표 요청 2026-08-14): 아래 어드벤처를 보다가 주를 넘기려고
+//   맨 위까지 스크롤해 올라가야 하는 불편을 없앤다. 상품별로 각자 주를 넘긴다.
+function sectionHTML(p, maxWeek, todayStr){
+  const d=DATA;
+  const wo=weekOff[p.key]||0;
+  const days=d.days.slice(wo*7, wo*7+7);
+  const fmt=s=>`${+s.slice(5,7)}/${+s.slice(8,10)}`;
+  const name=wo===0?L().thisWeek:(wo===1?L().nextWeek:L().weeksLater(wo));
+  const nav = d.days.length>7 && days.length ? `
+    <div class="weeknav">
+      <button class="wPrev" type="button"${wo<=0?' disabled':''}>${L().prevBtn}</button>
+      <div class="wlabel"><span class="range">${fmt(days[0].date)} ~ ${fmt(days[days.length-1].date)}</span><small>${name}</small></div>
+      <button class="wNext" type="button"${wo>=maxWeek?' disabled':''}>${L().nextBtn}</button>
+    </div>` : '';
+  // 구매 버튼: 기본=스마트스토어(products[].cta) · 예약판=자사 예약페이지(ctaBooking) · OTA판=숨김
+  const link = BOOKING ? (p.ctaBooking||'') : (p.cta||'');
+  const buy = (!OTA && link && link!=='#')
+    ? `<a class="buycta" href="${link}" target="_blank" rel="noopener noreferrer">${L().buy(tm(p.name))}<small>${BOOKING?L().buySubBook:L().buySub}</small></a>`
+    : '';
+  // 아이콘으로 한눈에 구분(요트=요트, 어드벤처=스피드보트)
+  const ic = p.key==='adventure' ? '🚤' : '🛥️';
+  // 제목은 '요트투어 예약현황' 형태(대표 요청 2026-08-14) — 상단 바로가기 버튼 문구와 통일
+  return `<h2 class="ptitle"><span class="ic">${ic}</span>${L().jump(tm(p.name))}</h2>` + nav + gridHTML(p, days, todayStr) + buy;
+}
+
+// 구역 하나만 다시 그린다(주 전환 시 전체를 새로 그리면 스크롤 위치가 튀므로 해당 구역만 교체)
+function mountSection(sec, p, maxWeek, todayStr){
+  sec.innerHTML = sectionHTML(p, maxWeek, todayStr);
+  const move=(delta)=>{
+    const cur=weekOff[p.key]||0, next=Math.min(maxWeek, Math.max(0, cur+delta));
+    if(next===cur) return;
+    weekOff[p.key]=next;
+    mountSection(sec, p, maxWeek, todayStr);
+    setTimeout(postH, 50);
+  };
+  const bp=sec.querySelector('.wPrev'), bn=sec.querySelector('.wNext');
+  if(bp) bp.onclick=()=>move(-1);
+  if(bn) bn.onclick=()=>move(1);
+}
+
+// 상품 구역 전체 조립: 요트투어(제목·주간이동·시간표·구매) → 어드벤처(동일 구성)
+function buildSections(){
+  const d=DATA;
+  const maxWeek=Math.max(0, Math.ceil(d.days.length/7)-1);
+  const todayStr=ymdKST(nowKST());
+  const box=$('#sections'); box.innerHTML='';
+  d.products.forEach(p=>{
+    if(weekOff[p.key]===undefined) weekOff[p.key]=0;
+    if(weekOff[p.key]>maxWeek) weekOff[p.key]=maxWeek;
+    const sec=document.createElement('section');
+    sec.className='psec'+(p.key==='adventure'?' adv':'');
+    sec.id='sec-'+p.key;
+    box.appendChild(sec);
+    mountSection(sec, p, maxWeek, todayStr);
+  });
+
+  // 상단 바로가기: 아래 구역이 있다는 걸 알리고 눌러서 즉시 이동
+  const jb=$('#jump'); jb.innerHTML='';
+  d.products.forEach(p=>{
+    const b=document.createElement('button'); b.type='button';
+    if(p.key==='adventure') b.className='adv';   // 어드벤처=주황 / 요트투어=하늘색(기본)
+    b.innerHTML=`${p.key==='adventure'?'🚤':'🛥️'} ${L().jump(tm(p.name))}<span class="ar">👆</span>`;
+    b.onclick=()=>scrollToSec(p.key);
+    jb.appendChild(b);
+  });
+
+  // 갱신된 슬롯 하이라이트(1회): 값이 바뀐 칸에 flash 애니메이션
+  if(changedKeys.size){
+    box.querySelectorAll('.cell[data-key]').forEach(c=>{ if(changedKeys.has(c.dataset.key)) c.classList.add('flash'); });
+    changedKeys.clear();
+  }
+  setTimeout(postH, 50);   // iframe 부모에 새 높이 통지
+}
+
+function showDetail(){
+  const d=DATA; const [date,t]=sel.split('|');
+  const prod=d.products.find(p=>p.key===curProduct);
+  const th=prod?.thresholds||d.thresholds;
+  const day=d.days.find(x=>x.date===date); const s=day?.slots.find(x=>x.product===curProduct && x.time_slot===t);
+  const det=$('#detail'); if(!s){ det.classList.remove('show'); return; }
+  const st=reclassify(s,date,th); const rem=s.remaining_seats, tot=s.total_capacity;
+  const pct=tot?Math.round((s.booked_count/tot)*100):100;
+  const LBL={AVAILABLE:'여유',FEW_LEFT:'임박',FULL:'마감',COMPLETED:'출항완료'};
+  const wd=day.weekday; const canBook=st==='AVAILABLE'||st==='FEW_LEFT';
+  const cta=prod?.cta&&prod.cta!=='#';
+  const seatTxt = canBook ? `잔여 <b>${rem}</b>석 / 총정원 ${tot}석`
+    : (st==='COMPLETED' ? '출항이 마감되었습니다' : '예약이 마감되었습니다');
+  det.className='detail show '+st;
+  det.innerHTML=`
+    <div class="d-top">
+      <div class="d-when">${date.slice(5).replace('-','/')} (${wd}) ${t}<small>${prod?.name||''}</small></div>
+      <div class="d-badge ${st}">${LBL[st]}</div>
+    </div>
+    <div class="d-seats">${seatTxt}</div>
+    <div class="bar ${st}"><i style="width:${Math.min(100,pct)}%"></i></div>
+    ${canBook?`<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">예약 ${s.booked_count}명 · 총정원 ${tot}석 (${pct}%)</div>
+    <a class="cta${cta?'':' off'}" href="${cta?prod.cta:'#'}" ${cta?'':'aria-disabled="true"'}>${cta?'바로 예약하기':'예약 링크 준비중'}</a>`:''}
+  `;
+}
+
+// 아임웹 등 iframe 삽입 시 부모창에 실제 콘텐츠 높이를 알려 여백 없이 맞추게 함.
+// ⚠ documentElement.scrollHeight 는 뷰포트(=iframe 높이)에 따라 커져서 무한 증가 루프가 생겼음(2026-08-10)
+//   → 뷰포트와 무관한 body 콘텐츠 높이로 측정 + 값이 거의 같으면 재통지 안 함(수렴 가드).
+// 상품 구역으로 이동(2026-08-14 모바일 버그 수정)
+//   ① scrollIntoView 는 상단 고정 헤더에 가려 "안 움직인 것처럼" 보이고, 구형 iOS에선 smooth 옵션이 무시된다
+//      → 헤더 높이만큼 빼서 window.scrollTo 로 직접 이동(실패 시 즉시 이동으로 폴백).
+//   ② 아임웹처럼 iframe 안에 넣은 경우, 스크롤 주체는 '부모 페이지'라 iframe 안에서 아무리 스크롤해도 화면이 안 움직인다
+//      → 부모에 목표 위치를 postMessage 로 알려 부모가 스크롤하게 한다(임베드 코드가 이를 처리).
+function scrollToSec(key){
+  const el=document.getElementById('sec-'+key);
+  if(!el) return;
+  const absTop = el.getBoundingClientRect().top + (window.pageYOffset||0);
+  if(window.parent!==window){
+    try{ parent.postMessage({ seatmapScrollTo: Math.round(absTop) }, '*'); }catch(e){}
+  }
+  const hdr=document.querySelector('header');
+  const off=(hdr?hdr.getBoundingClientRect().height:0)+8;
+  const y=Math.max(0, absTop-off);
+  const before=window.pageYOffset||0;
+  try{ window.scrollTo({top:y, behavior:'smooth'}); }catch(e){}
+  // ⚠ iOS(동작 줄이기 설정 등)에서는 behavior:'smooth' 가 '조용히 무시'된다 — 예외가 아니라서 catch로는 못 잡는다.
+  //   실제로 움직였는지 확인하고, 그대로면 즉시 이동으로 강제한다(2026-08-14 아이폰 버그 원인).
+  setTimeout(()=>{
+    const moved=Math.abs((window.pageYOffset||0)-before)>2;
+    if(!moved && Math.abs(y-before)>2) window.scrollTo(0,y);
+  },260);
+}
+
+let __lastH=0;
+function postH(){
+  if(window.parent===window) return;
+  const h=document.body.offsetHeight;
+  if(Math.abs(h-__lastH)<4) return;
+  __lastH=h;
+  try{ parent.postMessage({seatmapHeight:h}, '*'); }catch(e){}
+}
+window.addEventListener('resize', postH);
+
+function startTimer(){
+  const min=(DATA?.sync?.pollMinutes)||5;
+  clearInterval(timer); timer=setInterval(load,min*60000);
+  setInterval(()=>{ if(DATA) render(); },30000);   // 시각기반 상태·경과시간 갱신
+}
+load().then(startTimer);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) load(); });
+</script>
+</body>
+</html>
